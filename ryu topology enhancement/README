@@ -1,0 +1,4 @@
+description:enhance the performance of ryu topology discovery
+details:my blog has all details:http://www.cnblogs.com/cotyb/p/5007382.html
+usage:replace the original ryu/topology/switches.py file with my switches.py
+
