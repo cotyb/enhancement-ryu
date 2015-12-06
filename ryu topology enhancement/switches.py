@@ -1025,8 +1025,9 @@ class Switches(app_manager.RyuApp):
             dp.send_packet_out(actions=actions, data=switch_data.lldp_data)
         elif dp.ofproto.OFP_VERSION >= ofproto_v1_2.OFP_VERSION:
             for port_infor in self.port_state[dp.id].values():
-                actions.append(dp.ofproto_parser.OFPActionSetField(eth_src=port_infor.hw_addr))
-                actions.append(dp.ofproto_parser.OFPActionOutput(port_infor.port_no))
+			    if port_infor.name != "tap:":
+                    actions.append(dp.ofproto_parser.OFPActionSetField(eth_src=port_infor.hw_addr))
+                    actions.append(dp.ofproto_parser.OFPActionOutput(port_infor.port_no))
                 #actions = [dp.ofproto_parser.OFPActionOutput(self.port_state[dp].port_no)]
             out = dp.ofproto_parser.OFPPacketOut(
                 datapath=dp, in_port=dp.ofproto.OFPP_CONTROLLER,
