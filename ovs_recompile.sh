@@ -1,17 +1,21 @@
 #remove the old ovs
+kill `cd /usr/local/var/run/openvswitch && cat ovsdb-server.pid ovs-vswitchd.pid`
 aptitude remove openvswitch-common openvswitch-datapath-dkms openvswitch-controller openvswitch-pki openvswitch-switch -y
 #install the new ovs
 cd openvswitch-2.4.0
 ./configure --prefix=/usr --with-linux=/lib/modules/`uname -r`/build
 make
 make install 
+modprobe gre
+insmod datapath/linux/openvswitch.ko
 make modules_install
-rmmod openvswitch
-depmod -a
+modprobe openvswitch
+#rmmod openvswitch
+#depmod -a
 #disable openvswitch controller
 /etc/init.d/openvswitch-controller stop
 update-rc.d openvswitch-controller disable
-kill `cd /usr/local/var/run/openvswitch && cat ovsdb-server.pid ovs-vswitchd.pid`
+
 #start the new ovs
 /etc/init.d/openvswitch-switch start
 ovsdb-tool create /usr/local/etc/openvswitch/conf.db /usr/local/share/openvswitch/vswitch.ovsschema
