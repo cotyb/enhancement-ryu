@@ -11,7 +11,7 @@ depmod -a
 #disable openvswitch controller
 /etc/init.d/openvswitch-controller stop
 update-rc.d openvswitch-controller disable
-
+kill `cd /usr/local/var/run/openvswitch && cat ovsdb-server.pid ovs-vswitchd.pid`
 #start the new ovs
 /etc/init.d/openvswitch-switch start
 ovsdb-tool create /usr/local/etc/openvswitch/conf.db /usr/local/share/openvswitch/vswitch.ovsschema
