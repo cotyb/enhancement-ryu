@@ -11,8 +11,6 @@ modprobe gre
 insmod datapath/linux/openvswitch.ko
 make modules_install
 modprobe openvswitch
-#rmmod openvswitch
-#depmod -a
 #disable openvswitch controller
 /etc/init.d/openvswitch-controller stop
 update-rc.d openvswitch-controller disable
