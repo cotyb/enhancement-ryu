@@ -14,7 +14,8 @@
 # limitations under the License.
 
 
-#revised by cotyb in 5015/11/23
+# revised by cotyb in 2016/1/30
+# details: http://www.cnblogs.com/cotyb/p/5067844.html
 
 import logging
 import six
@@ -241,9 +242,9 @@ class PortState(dict):
     def modify(self, port_no, port):
         self[port_no] = port
 
+
 class SwitchData(object):
-    #store the lldp information
-    #send one LLDP information per switch
+    # store the lldp information, send one LLDP information per switch
     def __init__(self, lldp_data):
         super(SwitchData, self).__init__()
         self.lldp_data = lldp_data
@@ -266,7 +267,6 @@ class SwitchData(object):
     def __str__(self):
         return 'SwitchData<timestamp=%s, sent=%d>' \
             % (self.timestamp, self.sent)
-
 
 
 class PortData(object):
@@ -296,6 +296,7 @@ class PortData(object):
     def __str__(self):
         return 'PortData<live=%s, timestamp=%s, sent=%d>' \
             % (not self.is_down, self.timestamp, self.sent)
+
 
 class SwitchDataState(dict):
     # dict: Switch class -> SwitchData class
@@ -339,7 +340,7 @@ class SwitchDataState(dict):
     def add_switch(self, dp, lldp_data):
         if dp not in self:
             self._prepend_key(dp)
-            self[dp] = SwitchData( lldp_data)
+            self[dp] = SwitchData(lldp_data)
 
     def lldp_sent(self, dp):
         switch_data = self[dp]
@@ -355,7 +356,6 @@ class SwitchDataState(dict):
         if switch_data is not None:
             switch_data.clear_timestamp()
             self._move_front_key(dp)
-
 
     def get_switch(self, dp):
         return self[dp]
@@ -387,7 +387,6 @@ class SwitchDataState(dict):
         'od.iteritems -> an iterator over the (key, value) pairs in od'
         for k in self:
             yield (k, self[k])
-
 
 
 class PortDataState(dict):
@@ -632,7 +631,7 @@ class Switches(app_manager.RyuApp):
         self.dps = {}                 # datapath_id => Datapath class
         self.port_state = {}          # datapath_id => ports
         self.ports = PortDataState()  # Port class -> PortData class
-        self.switches = SwitchDataState()   #Switch class -> SwitchData class
+        self.switches = SwitchDataState()   # Switch class -> SwitchData class
         self.links = LinkState()      # Link class -> timestamp
         self.hosts = HostState()      # mac address -> Host class list
         self.is_active = True
@@ -686,23 +685,22 @@ class Switches(app_manager.RyuApp):
             port.dpid, 0, port.hw_addr, self.DEFAULT_TTL)
         self.ports.add_port(port, lldp_data)
         # LOG.debug('_port_added dpid=%s, port_no=%s, live=%s',
-        #           port.dpid, port.port_no, port.is_live())
+        # port.dpid, port.port_no, port.is_live())
 
-    #construct LLDP packet for switch
+    # construct LLDP packet for switch
     def _switch_added(self, dp):
         lldp_data = LLDPPacket.lldp_packet(
             dp.dp.id, 0, '00:00:00:00:00:00', self.DEFAULT_TTL)
         self.switches.add_switch(dp, lldp_data)
         # LOG.debug('_port_added dpid=%s, port_no=%s, live=%s',
-        #           port.dpid, port.port_no, port.is_live())
-
+        # port.dpid, port.port_no, port.is_live())
 
     def _link_down(self, port):
         try:
             dst, rev_link_dst = self.links.port_deleted(port)
         except KeyError:
             # LOG.debug('key error. src=%s, dst=%s',
-            #           port, self.links.get_peer(port))
+            # port, self.links.get_peer(port))
             return
         link = Link(port, dst)
         self.send_event_to_observers(event.EventLinkDelete(link))
@@ -886,7 +884,6 @@ class Switches(app_manager.RyuApp):
     def lldp_packet_in_handler(self, ev):
         if not self.link_discovery:
             return
-
         msg = ev.msg
         pkt = packet.Packet(msg.data)
         eth = pkt.get_protocols(ethernet.ethernet)[0]
@@ -897,11 +894,9 @@ class Switches(app_manager.RyuApp):
             # This handler can receive all the packtes which can be
             # not-LLDP packet. Ignore it silently
             return
-        
         for port in self.port_state[src_dpid].values():
             if port.hw_addr == src_mac:
                 src_port_no = port.port_no
-
         dst_dpid = msg.datapath.id
         if msg.datapath.ofproto.OFP_VERSION == ofproto_v1_0.OFP_VERSION:
             dst_port_no = msg.in_port
@@ -1020,17 +1015,17 @@ class Switches(app_manager.RyuApp):
         # TODO:XXX
         actions = []
         if dp.ofproto.OFP_VERSION == ofproto_v1_0.OFP_VERSION:
-		    for port_infor in self.port_state[dp.id].values():
-			    if port_infor.name != "tap:":
+            for port_infor in self.port_state[dp.id].values():
+                if port_infor.name != "tap:":
                     actions.append(dp.ofproto_parser.OFPActionSetDlSrc(port_infor.hw_addr))
                     actions = [dp.ofproto_parser.OFPActionOutput(port_infor.port_no)]
             dp.send_packet_out(actions=actions, data=switch_data.lldp_data)
         elif dp.ofproto.OFP_VERSION >= ofproto_v1_2.OFP_VERSION:
             for port_infor in self.port_state[dp.id].values():
-			    if port_infor.name != "tap:":
+                if port_infor.name != "tap:":
                     actions.append(dp.ofproto_parser.OFPActionSetField(eth_src=port_infor.hw_addr))
                     actions.append(dp.ofproto_parser.OFPActionOutput(port_infor.port_no))
-                #actions = [dp.ofproto_parser.OFPActionOutput(self.port_state[dp].port_no)]
+                # actions = [dp.ofproto_parser.OFPActionOutput(self.port_state[dp].port_no)]
             out = dp.ofproto_parser.OFPPacketOut(
                 datapath=dp, in_port=dp.ofproto.OFPP_CONTROLLER,
                 buffer_id=dp.ofproto.OFP_NO_BUFFER, actions=actions,
@@ -1047,8 +1042,6 @@ class Switches(app_manager.RyuApp):
             timeout = None
             switches_now = []
             switches = []
-            #ports_now = []
-            #ports = []
             for (key, data) in self.switches.items():
                 if data.timestamp is None:
                     switches_now.append(key)
